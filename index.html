@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Cave Game</title>
+	<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			background-color: lightgray;
+		}
+		#container {
+			width: 1280px;
+			height: 720px;
+			position: relative;
+			border: 2px solid black;
+			background-image: url('bg.png');
+			background-size: cover;
+		}
+
+		#player {
+			width: 40px;
+			height: 50px;
+			left: 0px;
+			top: 0px;
+			background-size: 200px 50px;
+			position: absolute;
+			background-image: url('idle.png');
+			animation: i 1s steps(4) infinite;
+		}
+		#msg {
+			position: absolute;
+			left: 0px;
+			top: 725px;
+		}
+		.coin {
+			background-image: url('coin.png');
+			background-repeat: no-repeat;
+			background-size: 100px 20px;
+			animation: c 1s steps(5) infinite;
+		}
+		.platform {
+			background-image: url('terrain.jpg');
+			background-size: 70px auto;
+		}
+		.mirror {
+			transform: scaleX(-1);
+		}
+		@keyframes c {
+			from { background-position: 0 0; }
+			to { background-position: -100px 0; }
+		}
+		@keyframes i {
+			from { background-position: 0 0; }
+			to { background-position: -200px 0; }
+		}
+		@keyframes r {
+			from { background-position: 0 0; }
+			to { background-position: -300px 0; }
+		}
+		@keyframes j {
+			from { background-position: 0 0; }
+			to { background-position: -400px 0; }
+		}
+	</style>
+</head>
+<body>
+	<div id="container"></div>
+	<div id="msg">movement: ← ↑ → <br> restart level: r</div>
+	<script>
+		let width;
+		let end;
+		let end2;
+		let msg = 0;
+		let currentLevel = 1;
+		let levelList = {
+			level1: {
+				x: 514,
+				y: 0,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 100, y: 250, width: 70, height: 12 },
+				],
+				coins: [
+					{ x: 150, y: 200 },
+					{ x: 200, y: 150 },
+				]
+			},
+			level2: {
+				x: 100,
+				y: 200,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 50, y: 150, width: 70, height: 12 },
+					{ x: 200, y: 300, width: 70, height: 12 },
+				],
+				coins: [
+					{ x: 100, y: 100 },
+					{ x: 300, y: 250 },
+				]
+			},
+			level3: {
+				x: 412,
+				y: 300,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 500, y: 50, width: 70, height: 12 },
+					{ x: 650, y: 200, width: 70, height: 12 },
+				],
+				coins: [
+					{ x: 550, y: 150 },
+					{ x: 700, y: 100 },
+				]
+			},
+			level4: {
+				x: 50,
+				y: 100,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 150, y: 50, width: 70, height: 12 },
+					{ x: 300, y: 200, width: 70, height: 12 },
+					{ x: 500, y: 100, width: 70, height: 12 },
+				],
+				coins: [
+					{ x: 200, y: 150 },
+					{ x: 400, y: 50 },
+					{ x: 600, y: 150 },
+				]
+			},
+			level5: {
+				x: 900,
+				y: 50,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 800, y: 100, width: 70, height: 12 },
+					{ x: 1000, y: 200, width: 70, height: 12 },
+					{ x: 1100, y: 300, width: 70, height: 12 },
+				],
+				coins: [
+					{ x: 850, y: 150 },
+					{ x: 950, y: 250 },
+					{ x: 1050, y: 350 },
+				]
+			},
+			level6: {
+				x: 200,
+				y: 400,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 300, y: 350, width: 70, height: 12 },
+					{ x: 400, y: 450, width: 70, height: 12 },
+					{ x: 600, y: 400, width: 70, height: 12 },
+				],
+				coins: [
+					{ x: 350, y: 300 },
+					{ x: 500, y: 400 },
+					{ x: 700, y: 450 },
+				]
+			},
+			level7: {
+				x: 600,
+				y: 100,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 700, y: 50, width: 70, height: 12 },
+					{ x: 800, y: 150, width: 70, height: 12 },
+					{ x: 1000, y: 100, width: 70, height: 12 },
+				],
+				coins: [
+					{ x: 750, y: 100 },
+					{ x: 900, y: 50 },
+					{ x: 1100, y: 150 },
+				]
+			},
+			level8: {
+				x: 1200,
+				y: 50,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 1000, y: 100, width: 280, height: 620 },
+					{ x: 1000, y: 0, width: 10, height: 720 },
+					{ x: 800, y: 120, width: 200, height: 600 },
+					{ x: 800, y: 0, width: 10, height: 720 },
+					{ x: 600, y: 140, width: 200, height: 580 },
+					{ x: 600, y: 0, width: 10, height: 720 },
+					{ x: 400, y: 160, width: 200, height: 560 },
+					{ x: 0, y: 0, width: 400, height: 720 },
+				],
+				coins: [
+					{ x: 900, y: 50 },
+					{ x: 700, y: 70 },
+					{ x: 500, y: 90 },
+				]
+			},
+			level9: {
+				x: 650,
+				y: 220,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 1000, y: 0, width: 280, height: 370 },
+					{ x: 0, y: 0, width: 414, height: 370 },
+					{ x: 0, y: 350, width: 1280, height: 370 },
+					{ x: 812, y: 0, width: 10, height: 170 },
+					{ x: 612, y: 160, width: 200, height: 10 },
+					{ x: 602, y: 0, width: 10, height: 170 },
+				],
+				coins: [
+					{ x: 700, y: 70 },
+				]
+			},
+			level10: {
+				x: 1200,
+				y: 100,
+				spd: 0.8,
+				gravity: 0.5,
+				platforms: [
+					{ x: 0, y: 0, width: 100, height: 720 },
+					{ x: 100, y: 0, width: 370, height: 220 },
+					{ x: 180, y: 500, width: 150, height: 20 },
+					{ x: 300, y: 0, width: 20, height: 620 },
+					{ x: 320, y: 200, width: 150, height: 20 },
+					{ x: 320, y: 500, width: 150, height: 20 },
+					{ x: 470, y: 0, width: 20, height: 720 },
+					{ x: 720, y: 300, width: 200, height: 20 },
+					{ x: 920, y: 550, width: 200, height: 20 },
+					{ x: 1120, y: 0, width: 10, height: 720 },
+				],
+				coins: [
+					{ x: 200, y: 250 },
+					{ x: 400, y: 550 },
+					{ x: 600, y: 100 },
+					{ x: 800, y: 350 },
+					{ x: 1000, y: 600 },
+				]
+			}
+		};
+
+		class Player {
+			constructor(x, y, container, acceleration, gravity, platforms, coins) {
+				this.container = container;
+				this.element = document.getElementById("player");
+				this.acceleration = acceleration;
+				this.gravity = gravity;
+				this.velocityX = 0;
+				this.velocityY = 0;
+				this.jumpStrength = -12;
+				this.jumpDecay = 0.5;
+				this.jumpPressed = false;
+				this.keys = {};
+				this.setupKeys();
+				this.updateLoop = null;
+				this.platforms = platforms;
+				this.coins = coins;
+				this.isTouchingLeft = false;
+				this.isTouchingRight = false;
+				this.isOnPlatform = false;
+				this.end = false;
+				this.rWasDown = false;
+				this.element = document.createElement("div");
+				this.element.id = "player";
+				this.element.style.left = x + "px";
+				this.element.style.top = y + "px";
+				this.container.appendChild(this.element);
+				this.update();
+			}
+
+			reset(levelData) {
+				this.element.style.left = levelData.x + "px";
+				this.element.style.top = levelData.y + "px";
+				this.velocityX = 0;
+				this.velocityY = 0;
+
+				this.coins.forEach(coin => {
+					container.removeChild(coin.element);
+				});
+
+				console.log(levelData.coins);
+				this.coins = levelData.coins.map(coin => new Coin(coin.x, coin.y));
+				console.log(this.coins);
+			}
+			setupKeys() {
+				document.addEventListener("keydown", (event) => {
+					if (event.key === 'r' || event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+						this.keys[event.code] = true;
+						event.preventDefault();
+					}
+				});
+				document.addEventListener("keyup", (event) => {
+					if (event.key === 'r' || event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+						this.keys[event.code] = false;
+						event.preventDefault();
+					}
+				});
+			}
+
+			checkCollisions() {
+				this.isTouchingLeft = false;
+				this.isTouchingRight = false;
+				this.isOnPlatform = false;
+				for (let platform of this.platforms) {
+					const playerBottom = this.element.offsetTop + this.element.offsetHeight;
+					const platformTop = platform.y;
+					const playerRight = this.element.offsetLeft + this.element.offsetWidth;
+					const platformLeft = platform.x;
+
+					if (
+						playerRight >= platformLeft &&
+						this.element.offsetLeft <= platformLeft + platform.w &&
+						playerBottom >= platformTop &&
+						this.element.offsetTop <= platformTop + platform.h
+					) {
+						const horizontalOverlap = Math.min(playerRight - platformLeft, platformLeft + platform.w - this.element.offsetLeft);
+						const verticalOverlap = Math.min(playerBottom - platformTop, platformTop + platform.h - this.element.offsetTop);
+
+						if (horizontalOverlap < verticalOverlap) {
+							if (playerRight - platformLeft < platformLeft + platform.w - this.element.offsetLeft) {
+								this.element.style.left = platformLeft - this.element.offsetWidth + "px";
+								this.isTouchingRight = true;
+							} else {
+								this.element.style.left = platformLeft + platform.w + "px";
+								this.isTouchingLeft = true;
+							}
+							this.velocityX = 0;
+						} else {
+							if (playerBottom - platformTop < platformTop + platform.h - this.element.offsetTop) {
+								this.element.style.top = platformTop - this.element.offsetHeight + "px";
+								this.isOnPlatform = true;
+								this.velocityY = 0;
+							} else {
+								this.element.style.top = platformTop + platform.h + "px";
+								this.velocityY = 0;
+							}
+						}
+					}
+					if (
+						(this.element.offsetLeft + this.element.offsetWidth >= platform.x &&
+							this.element.offsetLeft + this.element.offsetWidth <= platform.x + platform.w &&
+							this.element.offsetTop + this.element.offsetHeight > platform.y &&
+							this.element.offsetTop < platform.y + platform.h) ||
+						this.element.offsetLeft + this.element.offsetWidth >= this.container.offsetWidth - 4
+					) {
+						this.isTouchingRight = true;
+					}
+
+					if (
+						(this.element.offsetLeft <= platform.x + platform.w &&
+							this.element.offsetLeft >= platform.x &&
+							this.element.offsetTop + this.element.offsetHeight > platform.y &&
+							this.element.offsetTop < platform.y + platform.h) ||
+						this.element.offsetLeft <= 0
+					) {
+						this.isTouchingLeft = true;
+					}
+
+					if (
+						(this.element.offsetTop + this.element.offsetHeight >= platform.y &&
+							this.element.offsetTop + this.element.offsetHeight <= platform.y + platform.h&&
+							this.element.offsetLeft + this.element.offsetWidth > platform.x &&
+							this.element.offsetLeft < platform.x + platform.w) ||
+						this.element.offsetTop + this.element.offsetHeight >= this.container.offsetHeight - 4
+					) {
+						this.isOnPlatform = true;
+					}
+				}
+				for (let i = 0; i < this.coins.length; i++) {
+					const coin = this.coins[i];
+					if (
+						this.element.offsetLeft + this.element.offsetWidth >= coin.x &&
+						this.element.offsetLeft <= coin.x + 20 &&
+						this.element.offsetTop + this.element.offsetHeight >= coin.y &&
+						this.element.offsetTop <= coin.y + 20
+					) {
+						container.removeChild(coin.element);
+						this.coins.splice(i, 1);
+						i--;
+					}
+				}
+
+				if (this.coins.length === 0) {
+					this.end = true;
+				}
+			}
+
+			update() {
+				this.checkCollisions();
+				if (msg == 1 && Date.now() > end) {
+					document.getElementById("msg").textContent = "to bridge the gap where echoes cry";
+					msg = 2;
+				}
+				if (msg == 2 && Date.now() > end + 4500) {
+					document.getElementById("msg").textContent = "adjust the eastward boundaries, reach the sky";
+					msg = 3;
+				}
+				if (msg == 3 && Date.now()> end + 12000 ) {
+					document.getElementById("msg").textContent = "ok it looks like ur not really getting it";
+					msg = 4;
+				}
+				if (msg == 4 && Date.now()> end + 17000 ) {
+					document.getElementById("msg").textContent = "the answer is resizing the window";
+					msg = 5;
+				}
+				if (msg == 5 && Date.now()> end + 28000 ) {
+					document.getElementById("msg").textContent = "...what are you waiting for";
+					msg = 6;
+				}
+				if (msg == 6 && Date.now()> end + 38000 ) {
+					document.getElementById("msg").textContent = "come on man i dont got all day";
+					msg = 7;
+				}
+				if (msg == 7 && Date.now()> end + 49000 ) {
+					document.getElementById("msg").textContent = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+					msg = 8;
+				}
+				if (msg == 8 && Date.now()> end + 60000 ) {
+					document.getElementById("msg").textContent = "ok u do u im leaving";
+					msg = 9;
+				}
+				if (msg == 8 && Date.now()> end + 65000 ) {
+					document.getElementById("msg").textContent = "";
+					msg = 10;
+				}
+				if (msg > 0 && window.innerWidth != width) {
+					document.getElementById("msg").textContent = "";
+					msg = 0;
+				}
+				if (this.keys["ArrowLeft"]) {
+					this.velocityX -= this.acceleration;
+					this.element.classList.add("mirror");
+				}
+				if (this.keys["ArrowRight"]) {
+					this.velocityX += this.acceleration;
+					this.element.classList.remove("mirror");
+				}
+				if (this.keys["ArrowUp"] || this.velocityY > 0) {
+					this.element.style.backgroundImage = "url(jump.png)";
+					this.element.style.animation = 'j 1s steps(8) infinite';
+					this.element.style.backgroundSize = "400px 50px";
+				} else if (this.keys["ArrowLeft"] || this.keys["ArrowRight"]) {
+					this.element.style.backgroundImage = "url(run.png)";
+					this.element.style.animation = 'r 1s steps(6) infinite';
+					this.element.style.backgroundSize = "300px 50px";
+				} else {
+					this.element.style.backgroundImage = "url(idle.png)";
+					this.element.style.animation = 'i 1s steps(4) infinite';
+					this.element.style.backgroundSize = "200px 50px";
+				}
+				if (this.keys["KeyR"] && !this.rWasDown) {
+					this.reset(levelList['level' + currentLevel]);
+					this.rWasDown = true;
+				}
+				if (!this.keys["KeyR"]) {
+					this.rWasDown = false;
+				}
+
+				this.velocityY += this.gravity;
+				if (this.isTouchingLeft || this.isTouchingRight) {
+					this.velocityY = Math.min(4, this.velocityY);
+					this.element.style.backgroundImage = "url(push.png)";
+					this.element.style.animation = 'r 1s steps(6) infinite';
+					this.element.style.backgroundSize = "300px 50px";
+				} else {
+					this.velocityY = Math.min(18, this.velocityY);
+				}
+
+				if (this.keys["ArrowUp"] && !this.jumpPressed) {
+					if (this.isOnPlatform) {
+						this.jumpPressed = true;
+						this.velocityY = this.jumpStrength;
+					} else if (this.isTouchingLeft) {
+						this.jumpPressed = true;
+						this.velocityY = this.jumpStrength;
+						this.velocityX = 7;
+					} else if (this.isTouchingRight) {
+						this.jumpPressed = true;
+						this.velocityY = this.jumpStrength;
+						this.velocityX = -7;
+					}
+				}
+				if (!this.keys["ArrowUp"] && this.jumpPressed) {
+					this.jumpPressed = false;
+					if (this.velocityY < 0) {
+						this.velocityY *= this.jumpDecay;
+					}
+				}
+
+				this.element.style.left = Math.max(0, Math.min(this.container.offsetWidth - 3 -this.element.offsetWidth, this.element.offsetLeft + this.velocityX)) + "px";
+				this.element.style.top = Math.max(0, Math.min(this.container.offsetHeight - 3 - this.element.offsetHeight, this.element.offsetTop + this.velocityY)) + "px";
+				if (this.element.style.top === "671px" || this.element.style.top === "0px") {
+					this.velocityY = 0;
+				}
+
+				this.velocityX *= 0.8;
+
+				if (this.end) {
+					cancelAnimationFrame(this.udpateLoop);
+					this.container.removeChild(this.element);
+					this.platforms.forEach(platform => {
+						this.container.removeChild(platform.element);
+					});
+					return;
+				}
+				this.updateLoop = requestAnimationFrame(() => this.update());
+			}
+		}
+		class Platform {
+			constructor(x, y, w, h) {
+				this.x = x;
+				this.y = y;
+				this.w = w;
+				this.h = h;
+				this.element = document.createElement("div");
+				this.element.className = "platform";
+				this.element.style.position = "absolute";
+				this.element.style.left = this.x + "px";
+				this.element.style.top = this.y + "px";
+				this.element.style.width = this.w + "px";
+				this.element.style.height = this.h + "px";
+				container.appendChild(this.element);
+			}
+		}
+		class Coin {
+			constructor(x, y) {
+				this.x = x;
+				this.y = y;
+				const coinElement = document.createElement("div");
+				coinElement.className = "coin";
+				coinElement.style.position = "absolute";
+				coinElement.style.left = this.x + "px";
+				coinElement.style.top = this.y + "px";
+				coinElement.style.width = "20px";
+				coinElement.style.height = "20px";
+				coinElement.style.borderRadius = "50%";
+				container.appendChild(coinElement);
+				this.element = coinElement;
+			}
+		}
+
+		const startTime = Date.now();
+		const container = document.getElementById("container");
+		const timerElement = document.createElement("div");
+		timerElement.id = "timer";
+		timerElement.style.position = "absolute";
+		timerElement.style.top = "10px";
+		timerElement.style.left = "10px";
+		timerElement.style.color = "white";
+		timerElement.style.fontWeight = "bold";
+		timerElement.style.fontSize = "18px";
+		container.appendChild(timerElement);
+
+		function gameLoop(player) {
+			function wait() {
+				timerElement.textContent = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
+				if (player.end) {
+					currentLevel++;
+					nextLevel = levelList['level' + (currentLevel)];
+					if (nextLevel) {
+						if (currentLevel == 2) {
+							document.getElementById("msg").textContent = "";
+						}
+						if (currentLevel == 3) {
+							while (msg == 0) {
+								width = window.innerWidth;
+								if (width) {
+									msg = 1;
+									end = Date.now() + 5500;
+								}
+							}
+						}
+						player = createPlayerForLevel(nextLevel);
+						gameLoop(player);
+						return;
+					} else {
+						timerElement.style.fontSize = "50px";
+						return;
+					}
+				}
+				setTimeout(wait, 100);
+			}
+
+			wait();
+		}
+
+		function createPlayerForLevel(levelData) {
+			return new Player(levelData.x, levelData.y, container, levelData.spd, levelData.gravity, levelData.platforms.map(platform => new Platform(platform.x, platform.y, platform.width, platform.height)), levelData.coins.map(coin => new Coin(coin.x, coin.y)));
+		}
+
+		gameLoop(createPlayerForLevel(levelList.level1), 1);
+	</script>
+</body>
+</html>
